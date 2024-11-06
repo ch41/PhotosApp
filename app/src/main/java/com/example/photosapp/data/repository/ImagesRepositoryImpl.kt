@@ -64,6 +64,20 @@ class ImagesRepositoryImpl @Inject constructor(
             if(response.status == 200 ) {
                 emit(Resource.Success(true))
             }else emit(Resource.Error("Something goes wrong"))
-        }
+        }.catch { error ->
+            when (error) {
+                is HttpException -> {
+                    when (error.code()) {
+                        400 -> emit(Resource.Error(message = "Bad Image: ${error.message()}"))
+                        500 -> emit(Resource.Error(message = "Произошла ошибка при удалении фото"))
+                        else -> emit(Resource.Error(message = "Network error: ${error.code()}"))
+                    }
+                }
+
+                is IOException -> emit(Resource.Error("Network error, please check your connection"))
+                else -> emit(Resource.Error(error.localizedMessage ?: "An unexpected error"))
+            }
+
+        }.flowOn(Dispatchers.IO)
 
 }

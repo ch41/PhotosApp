@@ -78,6 +78,8 @@ dependencies {
     implementation(libs.androidx.paging.runtime.ktx)
     implementation(libs.coil)
     implementation (libs.play.services.maps)
+    implementation (libs.easypermissions.ktx)
+    implementation (libs.androidx.exifinterface)
     //room
     implementation(libs.androidx.room.runtime)
     kapt(libs.androidx.room.compiler)

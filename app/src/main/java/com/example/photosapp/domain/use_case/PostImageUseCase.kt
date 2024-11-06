@@ -1,5 +1,6 @@
 package com.example.photosapp.domain.use_case
 
+import android.util.Log
 import com.example.photosapp.common.utils.Resource
 import com.example.photosapp.domain.model.images.PostImage
 import com.example.photosapp.domain.model.images.PostImageDto
@@ -21,6 +22,7 @@ class PostImageUseCase @Inject constructor(
         emit(Resource.Loading)
 
         imageRepository.postImage(imageData, accessToken).collect { resource ->
+            Log.d("Resource.Success", "invoke: $resource")
             when (resource) {
                 is Resource.Success -> {
                     emit(Resource.Success(resource.data))

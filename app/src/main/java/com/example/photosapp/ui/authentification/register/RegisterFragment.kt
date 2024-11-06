@@ -8,9 +8,13 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavOptions
+import androidx.navigation.fragment.findNavController
+import com.example.photosapp.R
 import com.example.photosapp.common.base.BaseFragment
 import com.example.photosapp.databinding.FragmentRegisterBinding
 import com.example.photosapp.domain.model.auth.SignUp
+import com.example.photosapp.ui.authentification.login.LoginFragmentDirections
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -20,6 +24,7 @@ class RegisterFragment : BaseFragment<FragmentRegisterBinding>() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        handleBackPress()
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.registerState.collect { registerState ->
                 updateUI(registerState)
@@ -34,10 +39,10 @@ class RegisterFragment : BaseFragment<FragmentRegisterBinding>() {
                         password = passwordTextInputField.text.toString(),
                         repeatPassword = repeatPasswordTextInputField.text.toString()
                     )
+                hideKeyboard()
                 viewModel.signUp(signUpCredentials)
             }
         }
-
     }
 
     override fun initBinding(
@@ -55,11 +60,24 @@ class RegisterFragment : BaseFragment<FragmentRegisterBinding>() {
 
             if (state.success) {
                 Toast.makeText(context, "Registration successful!", Toast.LENGTH_SHORT).show()
+                navigateToPhotos(state)
                 loginTextInputField.text?.clear()
                 passwordTextInputField.text?.clear()
                 repeatPasswordTextInputField.text?.clear()
             }
         }
+    }
+
+    private fun navigateToPhotos(state: RegisterState) {
+        val action = RegisterFragmentDirections.actionRegisterFragmentToNavPhotos(
+            state.signUpResponse?.data?.login ?: "Unknown"
+        )
+        findNavController().navigate(
+            action,
+            NavOptions.Builder()
+                .setPopUpTo(R.id.loginFragment, true)
+                .build()
+        )
     }
 
 }

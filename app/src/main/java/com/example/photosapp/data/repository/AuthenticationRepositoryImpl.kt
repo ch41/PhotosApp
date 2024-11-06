@@ -30,7 +30,7 @@ class AuthenticationRepositoryImpl @Inject constructor(
 
         }.catch { error ->
             when (error) {
-                is HttpException -> emit(Resource.Error(message = "Network error: ${error.code()}"))
+                is HttpException -> emit(Resource.Error(message = "The password must contain from 4 to 32 characters, including Latin letters, numbers or symbols"))
                 is IOException -> emit(Resource.Error("Network error, please check your connection"))
                 else -> emit(Resource.Error(error.localizedMessage ?: "An unexpected error"))
             }

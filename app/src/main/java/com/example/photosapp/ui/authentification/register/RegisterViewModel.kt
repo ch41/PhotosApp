@@ -5,6 +5,7 @@ import com.example.photosapp.common.base.BaseViewModel
 import com.example.photosapp.common.utils.NetworkMonitor
 import com.example.photosapp.common.utils.Resource
 import com.example.photosapp.domain.model.auth.SignUp
+import com.example.photosapp.domain.repository.UserPreferencesRepository
 import com.example.photosapp.domain.use_case.SignUpUserUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,8 @@ import javax.inject.Inject
 @HiltViewModel
 class RegisterViewModel @Inject constructor(
     networkMonitor: NetworkMonitor,
-    private val signUpUserUseCase: SignUpUserUseCase
+    private val signUpUserUseCase: SignUpUserUseCase,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : BaseViewModel(networkMonitor) {
 
     private val _registerState = MutableStateFlow(RegisterState())
@@ -35,6 +37,7 @@ class RegisterViewModel @Inject constructor(
                     }
 
                     is Resource.Success -> {
+                        userPreferencesRepository.setToken(resource.data.data.token)
                         _registerState.value =
                             RegisterState(success = true, signUpResponse = resource.data)
                     }

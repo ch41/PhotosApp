@@ -42,8 +42,8 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/password_text_input_field"
                 android:layout_width="match_parent"
-                android:inputType="textPassword"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:inputType="textPassword" />
 
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -61,10 +61,22 @@
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/repeat_password_text_input_field"
                 android:layout_width="match_parent"
-                android:inputType="textPassword"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:inputType="textPassword" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:paddingHorizontal="24dp"
+            android:text="@string/password_help_hint"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/secondary_password_text_field" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline"
@@ -78,10 +90,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="24dp"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="8dp"
             android:backgroundTint="@color/background_green_color"
             android:text="@string/sign_in_text"
-            app:layout_constraintTop_toBottomOf="@+id/secondary_password_text_field" />
+            app:layout_constraintTop_toBottomOf="@+id/textView" />
 
         <ProgressBar
             android:id="@+id/loading_indicator"

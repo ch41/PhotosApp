@@ -26,7 +26,6 @@
             android:id="@+id/photo_image_view"
             android:layout_width="match_parent"
             android:layout_height="350dp"
-            android:src="@drawable/person_ic"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

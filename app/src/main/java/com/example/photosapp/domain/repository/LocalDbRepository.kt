@@ -7,4 +7,5 @@ interface LocalDbRepository {
     suspend fun getGallery() : List<ImagesDto>
     suspend fun deleteGalleryItemById(id:Int)
     suspend fun getImageById(id:Int) : ImagesDto
+    suspend fun insertSinglePhoto(image:ImagesDto)
 }

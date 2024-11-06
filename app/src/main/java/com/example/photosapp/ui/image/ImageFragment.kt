@@ -60,6 +60,7 @@ class ImageFragment : BaseFragment<FragmentImageBinding>() {
 
         binding.sendMessageIcon.setOnClickListener {
             viewModel.sendComment(binding.commentTextInputField.text.toString())
+            hideKeyboard()
             binding.commentTextInputField.text?.clear()
         }
     }
@@ -80,7 +81,6 @@ class ImageFragment : BaseFragment<FragmentImageBinding>() {
         with(binding) {
             photoImageView.load(screenState.imageData?.url) {
                 crossfade(true)
-                error(R.drawable.baseline_error_outline_24)
             }
             dateTextView.text = screenState.imageData?.date?.formatToDate()
         }

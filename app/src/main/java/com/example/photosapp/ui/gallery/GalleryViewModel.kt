@@ -1,13 +1,17 @@
 package com.example.photosapp.ui.gallery
 
 import android.graphics.Bitmap
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.example.photosapp.common.base.BaseViewModel
 import com.example.photosapp.common.extensions.toBase64
 import com.example.photosapp.common.utils.NetworkMonitor
 import com.example.photosapp.common.utils.Resource
 import com.example.photosapp.data.pagination.DefaultPaginator
+import com.example.photosapp.domain.model.images.ImagesDto
 import com.example.photosapp.domain.model.images.PostImage
+import com.example.photosapp.domain.repository.CommentRepository
 import com.example.photosapp.domain.repository.ImagesRepository
 import com.example.photosapp.domain.repository.LocalDbRepository
 import com.example.photosapp.domain.repository.UserPreferencesRepository
@@ -26,7 +30,8 @@ class GalleryViewModel @Inject constructor(
     private val imagesRepository: ImagesRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val localDbRepository: LocalDbRepository,
-    private val postImageUseCase: PostImageUseCase
+    private val postImageUseCase: PostImageUseCase,
+    private val commentRepository: CommentRepository
 ) : BaseViewModel(networkMonitor) {
 
     private var _galleryScreenState = MutableStateFlow(GalleryScreenState())
@@ -65,9 +70,16 @@ class GalleryViewModel @Inject constructor(
 
     fun removeImageById(imageId: Int) {
         viewModelScope.launch {
+            val token = userPreferencesRepository.getToken().getOrNull().orEmpty()
+            val comments = commentRepository.getComments(token, page = 0, imageId).getOrNull()
+
+            comments?.forEach { comment ->
+                commentRepository.deleteComment(imageId, token, comment.id).collect {}
+            }
+
             imagesRepository.deleteImage(
                 imageId,
-                userPreferencesRepository.getToken().getOrNull().orEmpty()
+                token
             ).collect { resource ->
                 when (resource) {
                     is Resource.Error -> {
@@ -77,6 +89,7 @@ class GalleryViewModel @Inject constructor(
 
                     Resource.Loading -> false
                     is Resource.Success -> {
+                        localDbRepository.deleteGalleryItemById(imageId)
                         _galleryScreenState.value = _galleryScreenState.value.copy(
                             items = _galleryScreenState.value.items.filter { it.id != imageId }
                         )
@@ -86,14 +99,13 @@ class GalleryViewModel @Inject constructor(
             }
             localDbRepository.deleteGalleryItemById(imageId)
         }
-
     }
 
     fun postPhoto(latitude: Double, longitude: Double, imageBitmap: Bitmap) {
         val postImage =
             PostImage(imageBitmap.toBase64(), getCurrentDateTimeInSeconds(), latitude, longitude)
-        viewModelScope.launch {
 
+        viewModelScope.launch {
             postImageUseCase(
                 postImage,
                 userPreferencesRepository.getToken().getOrNull().orEmpty()
@@ -103,11 +115,32 @@ class GalleryViewModel @Inject constructor(
                         _galleryScreenState.value =
                             _galleryScreenState.value.copy(error = resource.message)
                     }
+
                     Resource.Loading -> {}
-                    is Resource.Success -> {}
+                    is Resource.Success -> {
+                        refreshGallery()
+                    }
                 }
+            }
+        }
+    }
+
+    private fun refreshGallery() {
+        viewModelScope.launch {
+            val newImages = imagesRepository.getImages(
+                userPreferencesRepository.getToken().getOrNull().orEmpty(), page = 0
+            ).getOrNull()
+            if (newImages != null) {
+                _galleryScreenState.value = _galleryScreenState.value.copy(
+                    items = newImages,
+                    page = 1,
+                    endReached = newImages.size < 20,
+                    isLoading = false,
+                    scrollToTop = true
+                )
 
             }
+            localDbRepository.insertGallery(_galleryScreenState.value.items)
         }
     }
 
@@ -115,6 +148,18 @@ class GalleryViewModel @Inject constructor(
         viewModelScope.launch {
             paginator.loadNextItems()
         }
+    }
+
+ /*   fun resetScrollFlag() {
+        _galleryScreenState.value = _galleryScreenState.value.copy(
+            scrollToTop = false
+        )
+    }*/
+
+    fun resetDeleteError() {
+        _galleryScreenState.value = _galleryScreenState.value.copy(
+            deleteError = null
+        )
     }
 
     init {

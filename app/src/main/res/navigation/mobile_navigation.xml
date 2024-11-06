@@ -3,23 +3,25 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/mobile_navigation"
-    app:startDestination="@id/loginFragment">
+    app:startDestination="@id/splashScreen">
 
     <fragment
         android:id="@+id/nav_map"
         android:name="com.example.photosapp.ui.map.MapFragment"
         android:label="@string/map_text"
-        tools:layout="@layout/fragment_map" />
+        tools:layout="@layout/fragment_map">
+
+    </fragment>
 
     <fragment
         android:id="@+id/nav_photos"
         android:name="com.example.photosapp.ui.gallery.GalleryFragment"
         android:label="@string/photos_text"
-        tools:layout="@layout/fragment_photos" >
+        tools:layout="@layout/fragment_photos">
         <argument
             android:name="username"
-            app:argType="string"
-            android:defaultValue="username" />
+            android:defaultValue="username"
+            app:argType="string" />
         <action
             android:id="@+id/action_nav_photos_to_imageFragment"
             app:destination="@id/imageFragment" />
@@ -37,15 +39,24 @@
     <fragment
         android:id="@+id/registerFragment"
         android:name="com.example.photosapp.ui.authentification.register.RegisterFragment"
-        android:label="RegisterFragment" />
+        android:label="RegisterFragment">
+        <action
+            android:id="@+id/action_registerFragment_to_nav_photos"
+            app:destination="@id/nav_photos" />
+    </fragment>
+
     <fragment
         android:id="@+id/imageFragment"
         android:name="com.example.photosapp.ui.image.ImageFragment"
-        android:label="ImageFragment" >
+        android:label="ImageFragment">
         <argument
             android:name="imageId"
             app:argType="integer" />
     </fragment>
+    <fragment
+        android:id="@+id/splashScreen"
+        android:name="com.example.photosapp.ui.splash.SplashScreen"
+        android:label="SplashScreen" />
 
 
 </navigation>

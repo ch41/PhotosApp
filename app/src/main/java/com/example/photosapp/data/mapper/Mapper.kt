@@ -38,9 +38,9 @@ fun SignInResponseBody.toDomain() = SignInResponse(
 
 fun SignUpResponseBody.toDomain() = SignUpResponse(
     SignUpResponse.Data(
-        this.data?.login,
-        this.data?.token,
-        this.data?.userId
+        this.data.login,
+        this.data.token,
+        this.data.userId
     ),
     this.status
 )
@@ -82,7 +82,7 @@ fun List<GalleryItemEntity>.entityToDomain(): List<ImagesDto> {
 }
 
 fun GalleryItemEntity.toDomain(): ImagesDto = ImagesDto(date, id, lat, lng, url)
-
+fun ImagesDto.toLocalDbEntity() : GalleryItemEntity = GalleryItemEntity(date, id, lat, lng, url)
 fun List<ImagesDto>.domainToLocalEntity(): List<GalleryItemEntity> {
     return this.map { imageDto ->
         GalleryItemEntity(

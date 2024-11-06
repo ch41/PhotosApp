@@ -6,8 +6,11 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
@@ -17,27 +20,30 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.photosapp.common.base.BaseFragment
+import com.example.photosapp.common.extensions.resizeAndRotate
 import com.example.photosapp.databinding.FragmentPhotosBinding
 import com.example.photosapp.ui.gallery.adapter.GalleryAdapter
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.vmadalin.easypermissions.EasyPermissions
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.File
 
 @AndroidEntryPoint
-class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
+class GalleryFragment : BaseFragment<FragmentPhotosBinding>(), EasyPermissions.PermissionCallbacks {
 
     private val viewModel: GalleryViewModel by viewModels()
 
     private lateinit var takePictureLauncher: ActivityResultLauncher<Intent>
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-
+    private lateinit var photoUri: Uri
     private val adapter by lazy {
         GalleryAdapter(
             removeOnItemLongClick = { image ->
@@ -52,17 +58,15 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        handleBackPress()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
         takePictureLauncher =
             this.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 if (result.resultCode == Activity.RESULT_OK) {
-                    val imageBitmap = result.data?.extras?.get("data") as? Bitmap
-                    if (imageBitmap != null) {
-                        getLocationAndProcessImage(imageBitmap)
-                    } else {
-                        Toast.makeText(requireContext(), "Something goes wrong", Toast.LENGTH_SHORT)
-                            .show()
-                    }
+                    val imageBitmapHQ = BitmapFactory.decodeStream(
+                        requireContext().contentResolver.openInputStream(photoUri)
+                    ).resizeAndRotate(photoUri, requireContext(), 1280)
+                    getLocationAndProcessImage(imageBitmapHQ)
                 }
             }
         binding.galleryRecyclerView.adapter = adapter
@@ -70,8 +74,15 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
         viewLifecycleOwner.lifecycleScope.launchWhenStarted {
             viewModel.galleryScreenState.collect { screenState ->
                 adapter.submitList(screenState.items)
-                screenState.error?.let { errorMessage ->
-                    Toast.makeText(context, "End of list!", Toast.LENGTH_SHORT).show()
+//                {
+//                    if (screenState.scrollToTop) {
+//                        binding.galleryRecyclerView.scrollToPosition(0)
+//                        viewModel.resetScrollFlag()
+//                    }
+//                }
+                screenState.deleteError?.let { errorMessage ->
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                    viewModel.resetDeleteError()
                 }
             }
         }
@@ -85,7 +96,7 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
             }
         })
         binding.fab.setOnClickListener {
-            requestCameraPermission()
+            requestPermissions()
         }
     }
 
@@ -102,6 +113,14 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
 
     private fun openCameraIntent() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        val photoFile =
+            File(requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES), "photo.jpg")
+        photoUri = FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            photoFile
+        )
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
         if (intent.resolveActivity(requireContext().packageManager) != null) {
             takePictureLauncher.launch(intent)
         } else {
@@ -109,79 +128,15 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
         }
     }
 
-    private fun requestCameraPermission() {
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.CAMERA
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.CAMERA),
-                CAMERA_REQUEST_CODE
-            )
-        } else {
-            requestLocationPermissionForCamera()
-        }
-    }
-
-    private fun requestLocationPermissionForCamera() {
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                LOCATION_REQUEST_CODE
-            )
-        } else {
-            openCameraIntent()
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            CAMERA_REQUEST_CODE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    openCameraIntent()
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Camera permission is required to take pictures",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-
-            LOCATION_REQUEST_CODE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getLocationAndProcessImage(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Location permission is required to access your location",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
-    }
-
     private fun getLocationAndProcessImage(imageBitmap: Bitmap) {
-        if (ContextCompat.checkSelfPermission(
+        if (ActivityCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
-            )
-            == PackageManager.PERMISSION_GRANTED
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
         ) {
-
             fusedLocationClient.lastLocation
                 .addOnSuccessListener { location: Location? ->
                     if (location != null) {
@@ -190,14 +145,11 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
                         viewModel.postPhoto(latitude, longitude, imageBitmap)
                     } else {
                         Log.e("MyFragment", "Location is null, requesting location updates.")
-//                        requestLocationUpdate(imageBitmap)
                     }
                 }
                 .addOnFailureListener { exception ->
                     Log.e("MyFragment", "Failed to get location: ${exception.message}")
                 }
-        } else {
-            requestLocationPermissionForCamera()
         }
     }
 
@@ -206,13 +158,73 @@ class GalleryFragment : BaseFragment<FragmentPhotosBinding>() {
         findNavController().navigate(action)
     }
 
+    private fun requestPermissions() {
+        val requiredPermissions = listOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+
+        if (EasyPermissions.hasPermissions(requireContext(), *requiredPermissions.toTypedArray())) {
+            openCameraIntent()
+        } else {
+            EasyPermissions.requestPermissions(
+                this,
+                "Для работы этой функции необходим доступ к камере и местоположению",
+                REQUEST_CODE_CAMERA_AND_LOCATION,
+                *requiredPermissions.toTypedArray()
+            )
+        }
+        /*if (EasyPermissions.hasPermissions(
+                requireContext(),
+                Manifest.permission.CAMERA,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        ) {
+            openCameraIntent()
+        } else {
+            EasyPermissions.requestPermissions(
+                this,
+                "Для работы этой функции необходим доступ к камере и местоположению",
+                REQUEST_CODE_CAMERA_AND_LOCATION,
+                Manifest.permission.CAMERA,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        }*/
+    }
+
+
     private companion object {
-        const val CAMERA_REQUEST_CODE = 100
-        const val LOCATION_REQUEST_CODE = 101
+        const val REQUEST_CODE_CAMERA_AND_LOCATION = 102
     }
 
     override fun initBinding(
         inflater: LayoutInflater,
         container: ViewGroup?
     ): FragmentPhotosBinding = FragmentPhotosBinding.inflate(inflater, container, false)
+
+    override fun onPermissionsDenied(requestCode: Int, perms: List<String>) {
+
+    }
+
+    override fun onPermissionsGranted(requestCode: Int, perms: List<String>) {
+        if (EasyPermissions.hasPermissions(
+                requireContext(),
+                Manifest.permission.CAMERA,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        ) {
+            openCameraIntent()
+        }
+    }
+
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
+    }
+
 }

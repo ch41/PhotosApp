@@ -1,15 +1,18 @@
 package com.example.photosapp.ui.mainactivity
 
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
+import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.AppBarConfiguration
@@ -20,6 +23,8 @@ import com.example.photosapp.R
 import com.example.photosapp.databinding.ActivityMainBinding
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -34,37 +39,27 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setSupportActionBar(binding.appBarMain.toolbar)
-
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
 
+        this.lifecycleScope.launch {
+            viewModel.mainActivityState.collect { mainActivityState ->
+                updateUI(mainActivityState, navController)
+            }
+        }
+        setSupportActionBar(binding.appBarMain.toolbar)
+
         setupTabs(navController)
         setupNavView(navController)
 
-        this.lifecycleScope.launchWhenStarted {
-            viewModel.mainActivityState.collect { mainActivityState ->
-                updateUI(mainActivityState)
-            }
-        }
-
     }
 
-    private fun updateUI(state: MainActivityState) {
-        if (state.success) {
-            Toast.makeText(
-                this,
-                "Success",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-        if (state.hasError) {
-            Toast.makeText(
-                this,
-                "${state.errorText}",
-                Toast.LENGTH_SHORT
-            ).show()
+    private fun updateUI(state: MainActivityState, navController: NavController) {
+        if (state.emptyToken == false) {
+            navController.navigate(R.id.nav_photos)
+        } else if (state.emptyToken == true) {
+            navController.navigate(R.id.loginFragment)
         }
     }
 
@@ -131,18 +126,17 @@ class MainActivity : AppCompatActivity() {
         navView.setupWithNavController(navController)
         navController.addOnDestinationChangedListener { _, destination, _ ->
             when (destination.id) {
-
-                R.id.nav_map ->{
+                R.id.nav_map -> {
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                     navView.visibility = View.VISIBLE
-                    binding.appBarMain.root.visibility = View.GONE
+                    binding.appBarMain.root.visibility = View.VISIBLE
                     hideTabs()
                 }
+
                 R.id.nav_photos -> {
                     drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                     navView.visibility = View.VISIBLE
                     binding.appBarMain.root.visibility = View.VISIBLE
-
                     hideTabs()
                 }
 

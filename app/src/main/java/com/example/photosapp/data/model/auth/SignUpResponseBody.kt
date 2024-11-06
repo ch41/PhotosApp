@@ -5,16 +5,16 @@ import com.google.gson.annotations.SerializedName
 
 data class SignUpResponseBody(
     @SerializedName("data")
-    val data: Data?,
+    val data: Data,
     @SerializedName("status")
-    val status: Int?
+    val status: Int
 ) {
     data class Data(
         @SerializedName("login")
-        val login: String?,
+        val login: String,
         @SerializedName("token")
-        val token: String?,
+        val token: String,
         @SerializedName("userId")
-        val userId: Int?
+        val userId: Int
     )
 }

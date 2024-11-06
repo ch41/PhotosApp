@@ -75,7 +75,24 @@ class ImageViewModel @Inject constructor(
 
         }
     }
+    private fun refreshComments(imageId: Int) {
+        viewModelScope.launch {
+            val newImages = commentRepository.getComments(
+                userPreferencesRepository.getToken().getOrNull().orEmpty(), page = 0,
+                imageId = imageId
+            ).getOrNull()
+            if (newImages != null) {
+                _imageScreenState.value =
+                    _imageScreenState.value.copy(
+                    items = newImages,
+                    page = 1,
+                    endReached = newImages.size < 20,
+                    isLoading = false
+                )
 
+            }
+        }
+    }
     fun removeCommentById(commentId: Int) {
         viewModelScope.launch {
             commentRepository.deleteComment(
@@ -94,6 +111,7 @@ class ImageViewModel @Inject constructor(
                         _imageScreenState.value = _imageScreenState.value.copy(
                             items = _imageScreenState.value.items.filter { it.id != commentId }
                         )
+                        refreshComments(_imageScreenState.value.imageId)
                     }
                 }
 
@@ -125,7 +143,9 @@ class ImageViewModel @Inject constructor(
                         Log.d("errorImageVM", "sendComment: ${resource.message} ")
                     }
                     Resource.Loading -> false
-                    is Resource.Success -> paginator.loadNextItems()
+                    is Resource.Success -> {
+                        refreshComments(_imageScreenState.value.imageId)
+                    }
                 }
             }
         }

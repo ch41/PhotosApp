@@ -18,42 +18,22 @@ import javax.inject.Inject
 @HiltViewModel
 class MainActivityViewModel @Inject constructor(
     networkMonitor: NetworkMonitor,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val postImageUseCase: PostImageUseCase
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : BaseViewModel(networkMonitor) {
 
     private val _mainActivityState = MutableStateFlow(MainActivityState())
     val mainActivityState: StateFlow<MainActivityState> get() = _mainActivityState
-
-    fun postPhoto(latitude: Double, longitude: Double, imageBitmap: Bitmap) {
-        val postImage =
-            PostImage(imageBitmap.toBase64(), getCurrentDateTimeInSeconds(), latitude, longitude)
+    init {
+        getUserTokenOrEmpty()
+    }
+    private fun getUserTokenOrEmpty(){
         viewModelScope.launch {
-
-            postImageUseCase(
-                postImage,
-                userPreferencesRepository.getToken().getOrNull().orEmpty()
-            ).collect { resource ->
-                when (resource) {
-                    is Resource.Error -> {
-                        _mainActivityState.value =
-                            MainActivityState(success = false, errorText = resource.message)
-                    }
-
-                    Resource.Loading -> {
-                        _mainActivityState.value = MainActivityState(loading = true)
-                    }
-
-                    is Resource.Success -> {
-                        _mainActivityState.value = MainActivityState(success = true)
-                    }
-                }
-
-            }
+            val token =  userPreferencesRepository.getToken().getOrNull().orEmpty()
+            _mainActivityState.value = _mainActivityState.value.copy(emptyToken = token.isEmpty())
         }
     }
 }
 
 fun getCurrentDateTimeInSeconds(): Int {
-    return (System.currentTimeMillis() / 1000).toInt() // преобразуем миллисекунды в секунды
+    return (System.currentTimeMillis() / 1000).toInt()
 }

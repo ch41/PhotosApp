@@ -9,5 +9,6 @@ data class GalleryScreenState(
     val endReached: Boolean = false,
     val page: Int = 0,
     val deleteError:String? = null,
-    val imageRemoved:Boolean = false
+    val imageRemoved:Boolean = false,
+    val scrollToTop: Boolean = false
 )

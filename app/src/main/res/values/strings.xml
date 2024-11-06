@@ -20,4 +20,5 @@
     <string name="map_text">Map</string>
     <string name="photos_text">Photos</string>
     <string name="comment_text">Comment</string>
+    <string name="password_help_hint">The login must contain from 4 to 32 characters, including Latin letters, numbers or symbols</string>
 </resources>

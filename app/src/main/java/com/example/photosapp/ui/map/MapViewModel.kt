@@ -22,7 +22,7 @@ class MapViewModel @Inject constructor(
     init {
         getImages()
     }
-    private fun getImages(){
+    fun getImages(){
         viewModelScope.launch {
             _mapScreenState.value = _mapScreenState.value.copy(images = localDbRepository.getGallery())
         }
